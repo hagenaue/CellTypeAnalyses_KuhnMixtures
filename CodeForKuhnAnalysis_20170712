@@ -1,0 +1,696 @@
+#Taking a look at Kuhn's cell type mixture data
+#For use with Brain in a blender
+#Megan Hagenauer, 7-12-2017
+
+setwd("~/Documents/Microarray Gen/Kuhn_CellMixtures")
+
+#Note: Kuhn's data is already preprocessed with RMA (log base 2 expression values).
+#Should I bother to re-do it?
+
+library(GEOquery)
+gse <- getGEO("GSE19380", GSEMatrix = TRUE)
+#Error in download.file(myurl, destfile, mode = mode, quiet = TRUE, method = getOption("download.file.method.GEOquery")) : cannot open URL 'http://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?targ=self&acc=GPL1355&form=text&view=full'
+gse <- getGEO("GSE19380", GSEMatrix = FALSE)
+#Each file had this warning message:
+# Warning messages:
+#   1: In readLines(con, n = chunksize) :
+#   seek on a gzfile connection returned an internal error
+
+head(Meta(gse))
+str(Meta(gse))
+
+Meta(gse)$sample_id
+
+Meta(GSMList(gse)$GSM480943)$characteristics_ch1[2]
+#[1] "cell type: Primary neuronal culture (N)"
+
+sub("cell type: ","", Meta(GSMList(gse)$GSM480943)$characteristics_ch1[2])
+#[1] "Primary neuronal culture (N)"
+
+SampleID<-Meta(gse)$sample_id
+CellType<-matrix(0, nrow=length(SampleID), ncol=1)
+
+for(i in c(1:length(SampleID))){
+  CellType[i]<-sub("cell type: ","", Meta(GSMList(gse)[[i]])$characteristics_ch1[2])
+}
+
+CellType
+[,1]                                                                                                                           
+[1,] "Primary neuronal culture (N)"                                                                                                 
+[2,] "Primary neuronal culture (N)"                                                                                                 
+[3,] "Primary neuronal culture (N)"                                                                                                 
+[4,] "Primary neuronal culture (N)"                                                                                                 
+[5,] "Primary astrocytic culture (A)"                                                                                               
+[6,] "Primary astrocytic culture (A)"                                                                                               
+[7,] "Primary astrocytic culture (A)"                                                                                               
+[8,] "Primary astrocytic culture (A)"                                                                                               
+[9,] "Primary oligodendrocytic culture (O)"                                                                                         
+[10,] "Primary oligodendrocytic culture (O)"                                                                                         
+[11,] "Primary oligodendrocytic culture (O)"                                                                                         
+[12,] "Primary oligodendrocytic culture (O)"                                                                                         
+[13,] "Primary microglial culture (M)"                                                                                               
+[14,] "Primary microglial culture (M)"                                                                                               
+[15,] "Primary microglial culture (M)"                                                                                               
+[16,] "Primary microglial culture (M)"                                                                                               
+[17,] "mixed rna: N (fraction 0.25, sample N1), A (fraction 0.75, sample A1)"                                                        
+[18,] "mixed rna: N (fraction 0.25, sample N2), A (fraction 0.75, sample A4)"                                                        
+[19,] "mixed rna: N (fraction 0.5, sample N1), A (fraction 0.5, sample A1)"                                                          
+[20,] "mixed rna: N (fraction 0.5, sample N2), A (fraction 0.5, sample A4)"                                                          
+[21,] "mixed rna: N (fraction 0.75, sample N1), A (fraction 0.25, sample A1)"                                                        
+[22,] "mixed rna: N (fraction 0.75, sample N2), A (fraction 0.25, sample A4)"                                                        
+[23,] "mixed rna: N (fraction 0.5, sample N1), A (fraction 0.25, sample A1), O (fraction 0.25, sample O2)"                           
+[24,] "mixed rna: N (fraction 0.5, sample N2), A (fraction 0.25, sample A4), O (fraction 0.25, sample O4)"                           
+[25,] "mixed rna: N (fraction 0.5, sample N1), A (fraction 0.2, sample A1), O (fraction 0.2, sample O2), M (fraction 0.1, sample M2)"
+[26,] "mixed rna: N (fraction 0.5, sample N2), A (fraction 0.2, sample A4), O (fraction 0.2, sample O4), M (fraction 0.1, sample M3)"
+  
+  
+CellType2<-c(rep("Neuron", 4), rep("Astrocyte", 4), rep("Oligodendrocyte", 4), rep("Microglia", 4), rep("Mixed: 0.25 N, 0.75 A", 2), rep("Mixed: 0.5 N, 0.5 A", 2), rep("Mixed: 0.75 N, 0.25 A", 2), rep("Mixed: 0.5 N, 0.25 A, 0.25 O", 2), rep("Mixed: 0.5 N, 0.2 A, 0.2 0, 0.1 M", 2))
+
+PercentForEachCellType<-matrix(0, nrow=26, ncol=4)
+colnames(PercentForEachCellType)<-c("Neuron", "Astrocyte", "Oligodendrocyte", "Microglia")
+#Neurons:
+PercentForEachCellType[c(1:4),1]<-1
+PercentForEachCellType[c(17:18),1]<-0.25
+PercentForEachCellType[c(19:20),1]<-0.5
+PercentForEachCellType[c(21:22),1]<-0.75
+PercentForEachCellType[c(23:26),1]<-0.5
+#Astrocytes
+PercentForEachCellType[c(5:8),2]<-1
+PercentForEachCellType[c(17:18),2]<-0.75
+PercentForEachCellType[c(19:20),2]<-0.5
+PercentForEachCellType[c(21:22),2]<-0.25
+PercentForEachCellType[c(23:24),2]<-0.25
+PercentForEachCellType[c(25:26),2]<-0.2
+#Oligodendrocytes
+PercentForEachCellType[c(9:12),3]<-1
+PercentForEachCellType[c(23:24),3]<-0.25
+PercentForEachCellType[c(25:26),3]<-0.2
+#Microglia
+PercentForEachCellType[c(13:16),4]<-1
+PercentForEachCellType[c(25:26),4]<-0.1
+#Just to doublecheck that I entered it correctly:
+apply(PercentForEachCellType, 1, sum)
+#[1] 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1
+
+write.csv(data.frame(SampleID, CellType, PercentForEachCellType), "SampleCharacteristics.csv")
+
+
+str(Meta(GSMList(gse)[[i]]))
+
+str(GSMList(gse)[[i]])
+
+GSMList(gse)[[i]]
+
+#Checking on the platform:
+gsmplatforms <- lapply(GSMList(gse),function(x) {Meta(x)$platform})
+#Everything seems to be from the same platform (GPL1355)... but why are there only 6 entries?
+
+gsmlist = Filter(function(gsm) {Meta(gsm)$platform=='GPL1355'},GSMList(gse))
+length(gsmlist)
+#[1] 26
+
+Table(gsmlist[[1]])[1:5,]
+# ID_REF     VALUE
+# 1 1367452_at 11.206822
+# 2 1367453_at  9.869579
+# 3 1367454_at  9.899392
+# 4 1367455_at 10.983855
+# 5 1367456_at 10.168543
+
+KuhnSignalData<-matrix(0, nrow=length(Table(gsmlist[[i]])$VALUE), ncol=length(SampleID))
+
+for(i in 1:length(SampleID)){
+KuhnSignalData[,i]<-Table(gsmlist[[i]])$VALUE
+}
+
+head(KuhnSignalData)
+colnames(KuhnSignalData)<-SampleID
+row.names(KuhnSignalData)<-Table(gsmlist[[i]])$ID_REF
+head(KuhnSignalData)
+
+# GSM480943 GSM480944 GSM480945 GSM480946 GSM480947 GSM480948 GSM480949 GSM480950 GSM480951 GSM480952 GSM480953 GSM480954 GSM480955 GSM480956
+# 1367452_at 11.206822 11.311793 10.852773 11.006915 11.297387 11.195599 11.233708 10.835575 11.115370 11.115642 11.278628 11.384384 10.807874 11.011812
+# 1367453_at  9.869579  9.782614  9.557385  9.702758  9.579079  9.682332  9.844124  9.765413 10.004644 10.122973 10.026976 10.096605 10.268865 10.027962
+# 1367454_at  9.899392 10.061825 10.009494  9.910490 10.352916 10.324944 10.289967 10.880501 10.214448 10.164743  9.888653  9.968160 10.094184 10.142122
+# 1367455_at 10.983855 10.941020 10.774055 10.918887 10.960976 10.901972 10.899684 10.748459 11.111099 11.161664 11.217171 11.119395 10.952088 10.796448
+# 1367456_at 10.168543 10.290201 10.423118 10.274304 10.713283 10.683866 10.707478 10.654456 10.961608 10.776278 11.152132 11.109589 10.959946 11.113349
+# 1367457_at 10.055806 10.085652  9.919511  9.857780  9.727931  9.679317  9.743076 10.025119  9.870789  9.893472  9.822666  9.770709  9.696724  9.904643
+# GSM480957 GSM480958 GSM480959 GSM480960 GSM480961 GSM480962 GSM480963 GSM480964 GSM480965 GSM480966 GSM480967 GSM480968
+# 1367452_at 10.937901 11.036153 11.213961 11.184955 11.259678 11.267777 11.430833  11.13764 11.312938 11.335661 11.166847 11.322310
+# 1367453_at  9.952387 10.014936  9.842598  9.951331  9.777968  9.818839  9.901955   9.87610  9.943105 10.041542  9.872665  9.895985
+# 1367454_at 10.060346 10.000073 10.122987 10.628972 10.133544 10.435824  9.872200  10.16257  9.935014 10.183696 10.001204 10.154165
+# 1367455_at 10.837576 10.764660 10.945851 10.998522 10.875370 10.862998 10.898822  10.89458 10.977989 11.088450 11.010836 11.030991
+# 1367456_at 11.027696 11.140320 10.526866 10.717066 10.220774 10.420831 10.405320  10.02695 10.573770 10.713910 10.509324 10.602273
+# 1367457_at  9.598363  9.748135  9.771965 10.003048  9.923993  9.945061 10.087075  10.04050  9.938957  9.977004  9.975963 10.033833
+
+
+#Getting annotation for these probes
+#First I downloaded the annotation for Affymetrix Rat Genome 230 2.0 Array, GPL1355: https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GPL1355
+#I opened the text document and trimmed the columns down to just the ones that I need
+
+Annotation<-read.csv("GPL1355-10794_forR.csv", header=T, stringsAsFactors = F)
+head(Annotation)
+
+# ID    GB_ACC       Gene.Symbol   ENTREZ_GENE_ID
+# 1 1367452_at NM_133594             Sumo2           690244
+# 2 1367453_at NM_053743             Cdc37           114562
+# 3 1367454_at NM_021765             Copb2            60384
+# 4 1367455_at NM_053864               Vcp           116643
+# 5 1367456_at NM_031237 Ube2d2 /// Ube2d3 81920 /// 641452
+# 6 1367457_at NM_053739             Becn1           114558
+
+sum(Annotation$ID==row.names(KuhnSignalData))
+#[1] 31081
+#Good - they are in the same order.
+#Just to double-check:
+head(cbind(Annotation$ID,row.names(KuhnSignalData)))
+# [,1]         [,2]        
+# [1,] "1367452_at" "1367452_at"
+# [2,] "1367453_at" "1367453_at"
+# [3,] "1367454_at" "1367454_at"
+# [4,] "1367455_at" "1367455_at"
+# [5,] "1367456_at" "1367456_at"
+# [6,] "1367457_at" "1367457_at"
+
+write.csv(data.frame(Annotation, KuhnSignalData), "KuhnSignalData.csv")
+
+library(plyr)
+library(BrainInABlender)
+
+#This version didn't include Doyle:
+setwd("~/Documents/Microarray Gen/Kuhn_CellMixtures/BrainInABlender_NoDoyle")
+PredictedCellType<-Sir_UnMixALot(userInput=data.frame(Annotation$Gene.Symbol, KuhnSignalData), dataColumns = c(2:27), geneColumn = 1, species="mouse")
+
+#This version did include Doyle:
+setwd("~/Documents/Microarray Gen/Kuhn_CellMixtures/BrainInABlender_wDoyle")
+PredictedCellType<-Sir_UnMixALot_wDoyle(userInput=data.frame(Annotation$Gene.Symbol, KuhnSignalData), dataColumns = c(2:27), geneColumn = 1, species="mouse")
+
+
+
+str(PredictedCellType)
+
+PredictedCellType$PublicationSpecific_CellTypeIndex
+
+AveragePrimary_CellTypeIndex<-PredictedCellType$AveragePrimary_CellTypeIndex
+row.names(AveragePrimary_CellTypeIndex)
+
+
+#Astrocyte vs. Astrocyte
+plot(AveragePrimary_CellTypeIndex[1,]~PercentForEachCellType[,2])
+
+#Neuron vs. Neuron_All
+plot(AveragePrimary_CellTypeIndex[5,]~PercentForEachCellType[,1])
+#Neuron vs. Projection Neuron
+plot(AveragePrimary_CellTypeIndex[6,]~PercentForEachCellType[,1])
+#Neuron vs. Interneuron
+plot(AveragePrimary_CellTypeIndex[7,]~PercentForEachCellType[,1])
+
+#Oligodendrocyte vs. Oligodendrocyte
+plot(AveragePrimary_CellTypeIndex[8,]~PercentForEachCellType[,3])
+#Oligodendrocyte vs. Oligodendrocyte_Immature
+plot(AveragePrimary_CellTypeIndex[9,]~PercentForEachCellType[,3])
+#Microglia vs. Microglia
+plot(AveragePrimary_CellTypeIndex[3,]~PercentForEachCellType[,4])
+
+setwd("~/Documents/Microarray Gen/Kuhn_CellMixtures")
+
+pdf("Kuhn_CellMixture_vs_BrainInABlender_NoDoyle.pdf", width=6, height=6, pointsize=10)
+#pdf("Kuhn_CellMixture_vs_BrainInABlender_wDoyle.pdf", width=6, height=6, pointsize=10)
+par(mfrow=c(2,2))
+#Neuron vs. Neuron_All
+plot(AveragePrimary_CellTypeIndex[5,]~PercentForEachCellType[,1], xlab="Actual % Neurons", ylab="Cell Type Index", main="Neuron", font.lab=2, lwd=1, cex.lab=1.3, cex.axis=1)
+abline(lm(AveragePrimary_CellTypeIndex[5,]~PercentForEachCellType[,1]), lwd=4)
+mtext(paste("R-Squared: ", signif(summary.lm(lm(AveragePrimary_CellTypeIndex[5,]~PercentForEachCellType[,1]))$r.squared, digits=2), sep=""), side=3, line=0,cex=0.75, font=2)
+
+#Astrocyte vs. Astrocyte
+plot(AveragePrimary_CellTypeIndex[1,]~PercentForEachCellType[,2], xlab="Actual % Astrocytes", ylab="Cell Type Index", main="Astrocyte", font.lab=2, lwd=1, cex.lab=1.3, cex.axis=1)
+abline(lm(AveragePrimary_CellTypeIndex[1,]~PercentForEachCellType[,2]), lwd=4)
+mtext(paste("R-Squared: ", signif(summary.lm(lm(AveragePrimary_CellTypeIndex[1,]~PercentForEachCellType[,2]))$r.squared, digits=2), sep=""), side=3, line=0,cex=0.75, font=2)
+
+
+#Oligodendrocyte vs. Oligodendrocyte
+plot(AveragePrimary_CellTypeIndex[8,]~PercentForEachCellType[,3], xlab="Actual % Oligodendrocytes", ylab="Cell Type Index", main="Oligodendrocyte", font.lab=2, lwd=1, cex.lab=1.3, cex.axis=1)
+abline(lm(AveragePrimary_CellTypeIndex[8,]~PercentForEachCellType[,3]), lwd=4)
+points(AveragePrimary_CellTypeIndex[9,]~PercentForEachCellType[,3], col="grey")
+abline(lm(AveragePrimary_CellTypeIndex[9,]~PercentForEachCellType[,3]), col="grey", lwd=4)
+
+mtext(paste("R-Squared: ", signif(summary.lm(lm(AveragePrimary_CellTypeIndex[8,]~PercentForEachCellType[,3]))$r.squared, digits=2), " (Mature), ", signif(summary.lm(lm(AveragePrimary_CellTypeIndex[9,]~PercentForEachCellType[,3]))$r.squared, digits=2), " (Immature)", sep=""), side=3, line=0,cex=0.75, font=2)
+
+#Microglia vs. Microglia
+plot(AveragePrimary_CellTypeIndex[3,]~PercentForEachCellType[,4], xlab="Actual % Microglia", ylab="Cell Type Index", main="Microglia",  font.lab=2, lwd=1, cex.lab=1.3, cex.axis=1)
+abline(lm(AveragePrimary_CellTypeIndex[3,]~PercentForEachCellType[,4]), lwd=4)
+mtext(paste("R-Squared: ", signif(summary.lm(lm(AveragePrimary_CellTypeIndex[3,]~PercentForEachCellType[,4]))$r.squared, digits=2), sep=""), side=3, line=0,cex=0.75, font=2)
+
+dev.off()
+
+#Combined Plot:
+#As identified:
+
+pdf("Kuhn_CellMixture_vs_BrainInABlender_NoDoyle_Combined.pdf", width=4, height=4, pointsize=10)
+#pdf("Kuhn_CellMixture_vs_BrainInABlender_wDoyle_Combined.pdf", width=4, height=4, pointsize=10)
+
+MinForChart<-min(c(AveragePrimary_CellTypeIndex[1,], AveragePrimary_CellTypeIndex[5,], AveragePrimary_CellTypeIndex[8,], AveragePrimary_CellTypeIndex[3,]))
+MaxForChart<-max(c(AveragePrimary_CellTypeIndex[1,],AveragePrimary_CellTypeIndex[5,], AveragePrimary_CellTypeIndex[8,], AveragePrimary_CellTypeIndex[3,]))
+
+plot(AveragePrimary_CellTypeIndex[1,]~PercentForEachCellType[,2], ylim=c(MinForChart, MaxForChart), xlab="Actual % of Each Cell Type", ylab="Cell Type Index", font.lab=2, lwd=1, cex.lab=1.3, cex.axis=1)
+abline(lm(AveragePrimary_CellTypeIndex[1,]~PercentForEachCellType[,2]), lwd=4)
+
+points(AveragePrimary_CellTypeIndex[5,]~PercentForEachCellType[,1], col=2)
+abline(lm(AveragePrimary_CellTypeIndex[5,]~PercentForEachCellType[,1]), col=2, lwd=4)
+
+#Note: I used the immature oligodendrocytes for this:
+points(AveragePrimary_CellTypeIndex[9,]~PercentForEachCellType[,3], col=3)
+abline(lm(AveragePrimary_CellTypeIndex[9,]~PercentForEachCellType[,3]), col=3, lwd=4)
+
+points(AveragePrimary_CellTypeIndex[3,]~PercentForEachCellType[,4], col=4)
+abline(lm(AveragePrimary_CellTypeIndex[3,]~PercentForEachCellType[,4]), col=4, lwd=4)
+
+legend(x=0.5, y=-0.2, legend=c("Astrocyte", "Neuron", "Oligodendrocyte", "Microglia"), text.col=c(1,2,3,4), bty="n")
+
+dev.off()
+
+
+
+#General linear fit (all data): (although this should probably be a multiple regression... um...)
+ForGraph_PredictedCellTypeBalance<-c(AveragePrimary_CellTypeIndex[1,], AveragePrimary_CellTypeIndex[5,], AveragePrimary_CellTypeIndex[8,], AveragePrimary_CellTypeIndex[3,])
+ForGraph_ActualPercentageOfEachCellType<-c(PercentForEachCellType[,1], PercentForEachCellType[,2], PercentForEachCellType[,3], PercentForEachCellType[,4])
+
+summary.lm(lm(ForGraph_PredictedCellTypeBalance~ForGraph_ActualPercentageOfEachCellType))
+# Coefficients:
+#   Estimate Std. Error t value Pr(>|t|)   
+# (Intercept)                             -0.13276    0.07215  -1.840  0.06868 . 
+# ForGraph_ActualPercentageOfEachCellType  0.53104    0.16084   3.302  0.00133 **
+#   ---
+#   Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+# 
+# Residual standard error: 0.611 on 102 degrees of freedom
+# Multiple R-squared:  0.09656,	Adjusted R-squared:  0.0877 
+# F-statistic:  10.9 on 1 and 102 DF,  p-value: 0.001325
+
+#Astrocytes have a model that fits well:
+summary.lm(lm(AveragePrimary_CellTypeIndex[1,]~PercentForEachCellType[,2]))
+# Coefficients:
+#   Estimate Std. Error t value Pr(>|t|)    
+# (Intercept)                 -0.30886    0.06288  -4.912 5.19e-05 ***
+#   PercentForEachCellType[, 2]  1.01651    0.13138   7.737 5.67e-08 ***
+#   ---
+#   Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+# 
+# Residual standard error: 0.2477 on 24 degrees of freedom
+# Multiple R-squared:  0.7138,	Adjusted R-squared:  0.7019 
+# F-statistic: 59.86 on 1 and 24 DF,  p-value: 5.672e-08
+
+#w/Doyle:
+# Coefficients:
+#   Estimate Std. Error t value Pr(>|t|)    
+# (Intercept)                 -0.34733    0.06182  -5.618 8.77e-06 ***
+#   PercentForEachCellType[, 2]  1.14311    0.12917   8.850 5.05e-09 ***
+#   ---
+#   Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+# 
+# Residual standard error: 0.2435 on 24 degrees of freedom
+# Multiple R-squared:  0.7654,	Adjusted R-squared:  0.7557 
+# F-statistic: 78.31 on 1 and 24 DF,  p-value: 5.055e-09
+
+
+
+#Neuron_All has a model that fits well
+summary.lm(lm(AveragePrimary_CellTypeIndex[5,]~PercentForEachCellType[,1]))
+# Coefficients:
+#   Estimate Std. Error t value Pr(>|t|)    
+# (Intercept)                 -0.66496    0.05412  -12.29 7.66e-12 ***
+#   PercentForEachCellType[, 1]  1.92101    0.10622   18.08 1.74e-15 ***
+#   ---
+#   Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+# 
+# Residual standard error: 0.2025 on 24 degrees of freedom
+# Multiple R-squared:  0.9316,	Adjusted R-squared:  0.9288 
+# F-statistic:   327 on 1 and 24 DF,  p-value: 1.736e-15
+
+#W/Doyle:
+# Coefficients:
+#   Estimate Std. Error t value Pr(>|t|)    
+# (Intercept)                 -0.66296    0.05368  -12.35 6.86e-12 ***
+#   PercentForEachCellType[, 1]  1.91523    0.10535   18.18 1.54e-15 ***
+#   ---
+#   Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+# 
+# Residual standard error: 0.2008 on 24 degrees of freedom
+# Multiple R-squared:  0.9323,	Adjusted R-squared:  0.9295 
+# F-statistic: 330.5 on 1 and 24 DF,  p-value: 1.542e-15
+
+
+
+#It also fits projetion neurons
+summary.lm(lm(AveragePrimary_CellTypeIndex[6,]~PercentForEachCellType[,1]))
+# Coefficients:
+#   Estimate Std. Error t value Pr(>|t|)    
+# (Intercept)                 -0.34626    0.03305  -10.47 1.97e-10 ***
+#   PercentForEachCellType[, 1]  1.00031    0.06487   15.42 5.95e-14 ***
+#   ---
+#   Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+# 
+# Residual standard error: 0.1237 on 24 degrees of freedom
+# Multiple R-squared:  0.9083,	Adjusted R-squared:  0.9045 
+# F-statistic: 237.8 on 1 and 24 DF,  p-value: 5.948e-14
+
+#...but not as well with Doyle:
+# Coefficients:
+#   Estimate Std. Error t value Pr(>|t|)    
+# (Intercept)                 -0.18300    0.04986  -3.671  0.00121 ** 
+#   PercentForEachCellType[, 1]  0.52866    0.09785   5.403  1.5e-05 ***
+#   ---
+#   Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+# 
+# Residual standard error: 0.1865 on 24 degrees of freedom
+# Multiple R-squared:  0.5488,	Adjusted R-squared:   0.53 
+# F-statistic: 29.19 on 1 and 24 DF,  p-value: 1.504e-05
+
+
+
+#Oligodendrocyte model is less pretty:
+summary.lm(lm(AveragePrimary_CellTypeIndex[8,]~PercentForEachCellType[,3]), col=3)
+# Coefficients:
+#   Estimate Std. Error t value Pr(>|t|)    
+# (Intercept)                 -0.19536    0.07582  -2.577   0.0166 *  
+#   PercentForEachCellType[, 3]  1.03661    0.18853   5.498 1.18e-05 ***
+#   ---
+#   Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+# 
+# Residual standard error: 0.3415 on 24 degrees of freedom
+# Multiple R-squared:  0.5575,	Adjusted R-squared:  0.539 
+# F-statistic: 30.23 on 1 and 24 DF,  p-value: 1.184e-05
+
+#Especially w/Doyle:
+# Coefficients:
+#   Estimate Std. Error t value Pr(>|t|)    
+# (Intercept)                 -0.17587    0.08482  -2.074 0.049021 *  
+#   PercentForEachCellType[, 3]  0.93320    0.21091   4.425 0.000179 ***
+#   ---
+#   Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+# 
+# Residual standard error: 0.3821 on 24 degrees of freedom
+# Multiple R-squared:  0.4493,	Adjusted R-squared:  0.4263 
+# F-statistic: 19.58 on 1 and 24 DF,  p-value: 0.0001794
+
+
+#Probably because they are actually immature:
+summary.lm(lm(AveragePrimary_CellTypeIndex[9,]~PercentForEachCellType[,3]), col=3)
+# Coefficients:
+#   Estimate Std. Error t value Pr(>|t|)    
+# (Intercept)                 -0.15063    0.03094  -4.868 5.81e-05 ***
+#   PercentForEachCellType[, 3]  0.79924    0.07694  10.388 2.33e-10 ***
+#   ---
+#   Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+# 
+# Residual standard error: 0.1394 on 24 degrees of freedom
+# Multiple R-squared:  0.8181,	Adjusted R-squared:  0.8105 
+# F-statistic: 107.9 on 1 and 24 DF,  p-value: 2.326e-10
+
+#w/Doyle:
+# Coefficients:
+#   Estimate Std. Error t value Pr(>|t|)    
+# (Intercept)                 -0.14980    0.03169  -4.728 8.30e-05 ***
+#   PercentForEachCellType[, 3]  0.79485    0.07879  10.088 4.14e-10 ***
+#   ---
+#   Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+# 
+# Residual standard error: 0.1427 on 24 degrees of freedom
+# Multiple R-squared:  0.8092,	Adjusted R-squared:  0.8012 
+# F-statistic: 101.8 on 1 and 24 DF,  p-value: 4.141e-10
+
+
+#Microglia model is also not as pretty:
+summary.lm(lm(AveragePrimary_CellTypeIndex[3,]~PercentForEachCellType[,4]), col=3)
+# Coefficients:
+#   Estimate Std. Error t value Pr(>|t|)    
+# (Intercept)                  -0.2853     0.1062  -2.686   0.0129 *  
+#   PercentForEachCellType[, 4]   1.7663     0.2701   6.539  9.2e-07 ***
+#   ---
+#   Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+# 
+# Residual standard error: 0.4938 on 24 degrees of freedom
+# Multiple R-squared:  0.6405,	Adjusted R-squared:  0.6255 
+# F-statistic: 42.75 on 1 and 24 DF,  p-value: 9.202e-07
+
+#w/Doyle:
+# Coefficients:
+#   Estimate Std. Error t value Pr(>|t|)    
+# (Intercept)                  -0.2845     0.1051  -2.706   0.0123 *  
+#   PercentForEachCellType[, 4]   1.7613     0.2674   6.587  8.2e-07 ***
+#   ---
+#   Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+# 
+# Residual standard error: 0.4888 on 24 degrees of freedom
+# Multiple R-squared:  0.6438,	Adjusted R-squared:  0.629 
+# F-statistic: 43.38 on 1 and 24 DF,  p-value: 8.202e-07
+
+
+#Versus all publication Specific Indices:
+
+PublicationSpecific_CellTypeIndex<-PredictedCellType$PublicationSpecific_CellTypeIndex
+row.names(PublicationSpecific_CellTypeIndex)
+
+# [1] "Astrocyte_All_Cahoy_JNeuro_2008"                       "Astrocyte_All_Darmanis_PNAS_2015"                     
+# [3] "Astrocyte_All_Doyle_Cell_2008"                         "Astrocyte_All_Zeisel_Science_2015"                    
+# [5] "Astrocyte_All_Zhang_JNeuro_2014"                       "Endothelial_All_Daneman_PLOS_2010"                    
+# [7] "Endothelial_All_Darmanis_PNAS_2015"                    "Endothelial_All_Zeisel_Science_2015"                  
+# [9] "Endothelial_All_Zhang_JNeuro_2014"                     "Microglia_All_Darmanis_PNAS_2015"                     
+# [11] "Microglia_All_Zeisel_Science_2015"                     "Microglia_All_Zhang_JNeuro_2014"                      
+# [13] "Mural_All_Zeisel_Science_2015"                         "Mural_Pericyte_Zhang_JNeuro_2014"                     
+# [15] "Mural_Vascular_Daneman_PLOS_2010"                      "Neuron_All_Cahoy_JNeuro_2008"                         
+# [17] "Neuron_All_Darmanis_PNAS_2015"                         "Neuron_All_Zhang_JNeuro_2014"                         
+# [19] "Neuron_CorticoSpinal_Doyle_Cell_2008"                  "Neuron_CorticoStriatal_Doyle_Cell_2008"               
+# [21] "Neuron_CorticoThalamic_Doyle_Cell_2008"                "Neuron_GABA_Sugino_NatNeuro_2006"                     
+# [23] "Neuron_Glutamate_Sugino_NatNeuro_2006"                 "Neuron_Interneuron_CORT_Doyle_Cell_2008"              
+# [25] "Neuron_Interneuron_Zeisel_Science_2015"                "Neuron_Neuron_CCK_Doyle_Cell_2008"                    
+# [27] "Neuron_Neuron_PNOC_Doyle_Cell_2008"                    "Neuron_Pyramidal_Cortical_Zeisel_Science_2015"        
+# [29] "Oligodendrocyte_All_Cahoy_JNeuro_2008"                 "Oligodendrocyte_All_Doyle_Cell_2008"                  
+# [31] "Oligodendrocyte_All_Zeisel_Science_2015"               "Oligodendrocyte_Mature_Darmanis_PNAS_2015"            
+# [33] "Oligodendrocyte_Mature_Doyle_Cell_2008"                "Oligodendrocyte_Myelinating_Zhang_JNeuro_2014"        
+# [35] "Oligodendrocyte_Newly-Formed_Zhang_JNeuro_2014"        "Oligodendrocyte_Progenitor Cell_Darmanis_PNAS_2015"   
+# [37] "Oligodendrocyte_Progenitor Cell_Zhang_JNeuro_2014"     "RBC_All_GeneCardSearch_Hemoglobin_ErythrocyteSpecific"
+# 
+
+pdf("Kuhn_CellMixture_vs_BrainInABlender_wDoyle_PubSpecific.pdf", width=10, height=10, pointsize=10)
+par(mfrow=c(2,2))
+#Neuron vs. Neuron_All
+plot(PublicationSpecific_CellTypeIndex[16,]~PercentForEachCellType[,1], xlab="Actual % Neurons", ylab="Cell Type Index", main="Neuron", font.lab=2, lwd=1, cex.lab=1.3, cex.axis=1, pch=16, ylim=c(-1.25, 1.75))
+points(PublicationSpecific_CellTypeIndex[17,]~PercentForEachCellType[,1], col=2, pch=17)
+points(PublicationSpecific_CellTypeIndex[18,]~PercentForEachCellType[,1], col=3, pch=18)
+
+abline(lm(PublicationSpecific_CellTypeIndex[16,]~PercentForEachCellType[,1]), lwd=4)
+abline(lm(PublicationSpecific_CellTypeIndex[17,]~PercentForEachCellType[,1]), lwd=4, col=2)
+abline(lm(PublicationSpecific_CellTypeIndex[18,]~PercentForEachCellType[,1]), lwd=4, col=3)
+
+legend(x=0.4, y=-0.2, legend=c("Neuron_All_Cahoy_JNeuro_2008", "Neuron_All_Darmanis_PNAS_2015", "Neuron_All_Zhang_JNeuro_2014"), text.col=c(1,2,3), bty="n")
+
+#mtext(paste("R-Squared: ", signif(summary.lm(lm(AveragePrimary_CellTypeIndex[5,]~PercentForEachCellType[,1]))$r.squared, digits=2), sep=""), side=3, line=0,cex=0.75, font=2)
+
+#Astrocyte vs. Astrocyte
+plot(PublicationSpecific_CellTypeIndex[1,]~PercentForEachCellType[,2], xlab="Actual % Astrocytes", ylab="Cell Type Index", main="Astrocyte", font.lab=2, lwd=1, cex.lab=1.3, cex.axis=1, pch=16, ylim=c(-1.25, 1.75))
+points(PublicationSpecific_CellTypeIndex[2,]~PercentForEachCellType[,2], col=2, pch=17)
+points(PublicationSpecific_CellTypeIndex[3,]~PercentForEachCellType[,2], col=3, pch=18)
+points(PublicationSpecific_CellTypeIndex[4,]~PercentForEachCellType[,2], col=4, pch=19)
+points(PublicationSpecific_CellTypeIndex[5,]~PercentForEachCellType[,2], col=5, pch=20)
+
+abline(lm(PublicationSpecific_CellTypeIndex[1,]~PercentForEachCellType[,2]), lwd=4)
+abline(lm(PublicationSpecific_CellTypeIndex[2,]~PercentForEachCellType[,2]), lwd=4, col=2)
+abline(lm(PublicationSpecific_CellTypeIndex[3,]~PercentForEachCellType[,2]), lwd=4, col=3)
+abline(lm(PublicationSpecific_CellTypeIndex[4,]~PercentForEachCellType[,2]), lwd=4, col=4)
+abline(lm(PublicationSpecific_CellTypeIndex[5,]~PercentForEachCellType[,2]), lwd=4, col=5)
+
+legend(x=0.4, y=-0.5, legend=c("Astrocyte_All_Cahoy_JNeuro_2008" , "Astrocyte_All_Darmanis_PNAS_2015" , "Astrocyte_All_Doyle_Cell_2008" , "Astrocyte_All_Zeisel_Science_2015", "Astrocyte_All_Zhang_JNeuro_2014"), text.col=c(1,2,3,4,5), bty="n")
+
+#mtext(paste("R-Squared: ", signif(summary.lm(lm(AveragePrimary_CellTypeIndex[1,]~PercentForEachCellType[,2]))$r.squared, digits=2), sep=""), side=3, line=0,cex=0.75, font=2)
+
+
+#Oligodendrocyte vs. Oligodendrocyte
+plot(PublicationSpecific_CellTypeIndex[29,]~PercentForEachCellType[,3], xlab="Actual % Oligodendrocytes", ylab="Cell Type Index", main="Oligodendrocyte", font.lab=2, lwd=1, cex.lab=1.3, cex.axis=1, pch=16, ylim=c(-1.75, 2))
+points(PublicationSpecific_CellTypeIndex[30,]~PercentForEachCellType[,3], col=2, pch=17)
+points(PublicationSpecific_CellTypeIndex[31,]~PercentForEachCellType[,3], col=3, pch=18)
+points(PublicationSpecific_CellTypeIndex[32,]~PercentForEachCellType[,3], col=4, pch=19)
+points(PublicationSpecific_CellTypeIndex[33,]~PercentForEachCellType[,3], col=5, pch=20)
+points(PublicationSpecific_CellTypeIndex[34,]~PercentForEachCellType[,3], col=6, pch=21)
+points(PublicationSpecific_CellTypeIndex[35,]~PercentForEachCellType[,3], col=7, pch=22)
+points(PublicationSpecific_CellTypeIndex[36,]~PercentForEachCellType[,3], col=8, pch=23)
+points(PublicationSpecific_CellTypeIndex[37,]~PercentForEachCellType[,3], col=9, pch=24)
+
+abline(lm(PublicationSpecific_CellTypeIndex[29,]~PercentForEachCellType[,3]), lwd=4)
+abline(lm(PublicationSpecific_CellTypeIndex[30,]~PercentForEachCellType[,3]), lwd=4, col=2)
+abline(lm(PublicationSpecific_CellTypeIndex[31,]~PercentForEachCellType[,3]), lwd=4, col=3)
+abline(lm(PublicationSpecific_CellTypeIndex[32,]~PercentForEachCellType[,3]), lwd=4, col=4)
+abline(lm(PublicationSpecific_CellTypeIndex[33,]~PercentForEachCellType[,3]), lwd=4, col=5)
+abline(lm(PublicationSpecific_CellTypeIndex[34,]~PercentForEachCellType[,3]), lwd=4, col=6)
+abline(lm(PublicationSpecific_CellTypeIndex[35,]~PercentForEachCellType[,3]), lwd=4, col=7, lty=2)
+abline(lm(PublicationSpecific_CellTypeIndex[36,]~PercentForEachCellType[,3]), lwd=4, col=8, lty=2)
+abline(lm(PublicationSpecific_CellTypeIndex[37,]~PercentForEachCellType[,3]), lwd=4, col=9, lty=2)
+
+legend(x=0.3, y=-0.1, legend=c("Oligodendrocyte_All_Cahoy_JNeuro_2008",  "Oligodendrocyte_All_Doyle_Cell_2008", "Oligodendrocyte_All_Zeisel_Science_2015", "Oligodendrocyte_Mature_Darmanis_PNAS_2015" , "Oligodendrocyte_Mature_Doyle_Cell_2008", "Oligodendrocyte_Myelinating_Zhang_JNeuro_2014", "Oligodendrocyte_Newly-Formed_Zhang_JNeuro_2014", "Oligodendrocyte_Progenitor Cell_Darmanis_PNAS_2015", "Oligodendrocyte_Progenitor Cell_Zhang_JNeuro_2014"), text.col=c(1,2,3,4,5, 6, 7, 8, 9), bty="n")
+
+
+#mtext(paste("R-Squared: ", signif(summary.lm(lm(AveragePrimary_CellTypeIndex[8,]~PercentForEachCellType[,3]))$r.squared, digits=2), " (Mature), ", signif(summary.lm(lm(AveragePrimary_CellTypeIndex[9,]~PercentForEachCellType[,3]))$r.squared, digits=2), " (Immature)", sep=""), side=3, line=0,cex=0.75, font=2)
+
+ 
+
+#Microglia vs. Microglia
+plot(PublicationSpecific_CellTypeIndex[10,]~PercentForEachCellType[,4], xlab="Actual % Microglia", ylab="Cell Type Index", main="Microglia", font.lab=2, lwd=1, cex.lab=1.3, cex.axis=1, pch=16, ylim=c(-1.25, 2))
+points(PublicationSpecific_CellTypeIndex[11,]~PercentForEachCellType[,4], col=2, pch=17)
+points(PublicationSpecific_CellTypeIndex[12,]~PercentForEachCellType[,4], col=3, pch=18)
+
+abline(lm(PublicationSpecific_CellTypeIndex[10,]~PercentForEachCellType[,4]), lwd=4)
+abline(lm(PublicationSpecific_CellTypeIndex[11,]~PercentForEachCellType[,4]), lwd=4, col=2)
+abline(lm(PublicationSpecific_CellTypeIndex[12,]~PercentForEachCellType[,4]), lwd=4, col=3)
+
+legend(x=0.4, y=-0.3, legend=c("Microglia_All_Darmanis_PNAS_2015","Microglia_All_Zeisel_Science_2015", "Microglia_All_Zhang_JNeuro_2014"), text.col=c(1,2,3), bty="n")
+
+#mtext(paste("R-Squared: ", signif(summary.lm(lm(AveragePrimary_CellTypeIndex[3,]~PercentForEachCellType[,4]))$r.squared, digits=2), sep=""), side=3, line=0,cex=0.75, font=2)
+
+dev.off()
+
+ 
+
+#I should probably also compare to PSEA
+
+library("PSEA")
+
+setwd("~/Documents/Microarray Gen/Kuhn_CellMixtures/BrainInABlender_wDoyle/Detailed_CellTypeAnalysisOutput")
+#[1] "/Users/mhh/Documents/Microarray Gen/Kuhn_CellMixtures/BrainInABlender_wDoyle"
+ZscoreInput_Expression_CellType_NoPrimaryOverlap<-read.csv("ZscoreInput_Expression_CellType_NoPrimaryOverlap.csv", header=T)
+colnames(ZscoreInput_Expression_CellType_NoPrimaryOverlap)
+head(ZscoreInput_Expression_CellType_NoPrimaryOverlap)
+#Mouse gene symbols are found in column 6
+#Cell type primary is in column 15
+
+#In order to run PSEA, the gene symbols need to be the row.names
+#That is problematic, because the Kuhn Signal Data has more than one probe set representing each gene symbol.
+sum(duplicated(Annotation$Gene.Symbol))
+#[1] 15852
+temp<-table(Annotation$Gene.Symbol)
+head(temp)
+#          1-Mar  1-Sep 10-Mar 10-Sep 11-Mar 
+# 9680      4      1      2      1      1 
+#9860 probesets don't have associated gene symbols
+
+hist(table(Annotation$Gene.Symbol)[-1])
+#between 0-12, most have less than 2.
+
+dim(KuhnSignalData)
+KuhnSignalData_NoNAGeneSymbols<-KuhnSignalData[Annotation$Gene.Symbol!="",]
+dim(KuhnSignalData_NoNAGeneSymbols)
+#[1] 21419    26
+
+AnnotationGene.Symbol_noNA<-Annotation$Gene.Symbol[Annotation$Gene.Symbol!=""]
+length(AnnotationGene.Symbol_noNA)
+
+KuhnSignalData_AveragedByGeneSymbol<-matrix(0, ncol=ncol(KuhnSignalData_NoNAGeneSymbols), nrow=length(table(AnnotationGene.Symbol_noNA)))
+row.names(KuhnSignalData_AveragedByGeneSymbol)<-names(table(AnnotationGene.Symbol_noNA))
+colnames(KuhnSignalData_AveragedByGeneSymbol)<-colnames(KuhnSignalData)
+
+head(KuhnSignalData_AveragedByGeneSymbol)
+i<-1
+
+for(i in 1:ncol(KuhnSignalData)){
+  KuhnSignalData_AveragedByGeneSymbol[,i]<-tapply(KuhnSignalData_NoNAGeneSymbols[,i], AnnotationGene.Symbol_noNA, mean)
+}
+
+write.csv(KuhnSignalData_AveragedByGeneSymbol, "KuhnSignalData_AveragedByGeneSymbol.csv")
+
+
+astrocyte_genes<-ZscoreInput_Expression_CellType_NoPrimaryOverlap[ZscoreInput_Expression_CellType_NoPrimaryOverlap[,15]=="Astrocyte",6]
+astrocyte_reference<-marker(expr=KuhnSignalData_AveragedByGeneSymbol, id=astrocyte_genes)
+plot(astrocyte_reference~PercentForEachCellType[,2], ylab="Astrocyte Reference Signal")
+
+neuron_genes<-ZscoreInput_Expression_CellType_NoPrimaryOverlap[ZscoreInput_Expression_CellType_NoPrimaryOverlap[,15]=="Neuron_All",6]
+neuron_reference<-marker(expr=KuhnSignalData_AveragedByGeneSymbol, id=neuron_genes)
+plot(neuron_reference~PercentForEachCellType[,1], ylab="Neuron Reference Signal")
+
+oligodendrocyte_genes<-ZscoreInput_Expression_CellType_NoPrimaryOverlap[ZscoreInput_Expression_CellType_NoPrimaryOverlap[,15]=="Oligodendrocyte",6]
+oligodendrocyte_reference<-marker(expr=KuhnSignalData_AveragedByGeneSymbol, id=oligodendrocyte_genes)
+plot(oligodendrocyte_reference~PercentForEachCellType[,3], ylab="Oligodendrocyte Reference Signal")
+
+oligodendrocyteImmature_genes<-ZscoreInput_Expression_CellType_NoPrimaryOverlap[ZscoreInput_Expression_CellType_NoPrimaryOverlap[,15]=="Oligodendrocyte_Immature",6]
+oligodendrocyteImmature_reference<-marker(expr=KuhnSignalData_AveragedByGeneSymbol, id=oligodendrocyteImmature_genes)
+plot(oligodendrocyteImmature_reference~PercentForEachCellType[,3], ylab="Oligodendrocyte_Immature Reference Signal")
+
+
+microglia_genes<-ZscoreInput_Expression_CellType_NoPrimaryOverlap[ZscoreInput_Expression_CellType_NoPrimaryOverlap[,15]=="Microglia",6]
+microglia_reference<-marker(expr=KuhnSignalData_AveragedByGeneSymbol, id=microglia_genes)
+plot(microglia_reference~PercentForEachCellType[,4], ylab="Microglia Reference Signal")
+
+
+
+pdf("Kuhn_CellMixture_vs_PSEA_wDoyle.pdf", width=6, height=6, pointsize=10)
+par(mfrow=c(2,2))
+#Neuron vs. Neuron_All
+plot(neuron_reference~PercentForEachCellType[,1], xlab="Actual % Neurons", ylab="Cell Type Reference Signal", main="Neuron", font.lab=2, lwd=1, cex.lab=1.3, cex.axis=1)
+abline(lm(neuron_reference~PercentForEachCellType[,1]), lwd=4)
+mtext(paste("R-Squared: ", signif(summary.lm(lm(neuron_reference~PercentForEachCellType[,1]))$r.squared, digits=2), sep=""), side=3, line=0,cex=0.75, font=2)
+
+#Astrocyte vs. Astrocyte
+plot(astrocyte_reference~PercentForEachCellType[,2], xlab="Actual % Astrocytes", ylab="Cell Type Reference Signal", main="Astrocyte", font.lab=2, lwd=1, cex.lab=1.3, cex.axis=1)
+abline(lm(astrocyte_reference~PercentForEachCellType[,2]), lwd=4)
+mtext(paste("R-Squared: ", signif(summary.lm(lm(astrocyte_reference~PercentForEachCellType[,2]))$r.squared, digits=2), sep=""), side=3, line=0,cex=0.75, font=2)
+
+
+#Oligodendrocyte vs. Oligodendrocyte
+plot(oligodendrocyte_reference~PercentForEachCellType[,3], xlab="Actual % Oligodendrocytes", ylab="Cell Type Reference Signal", main="Oligodendrocyte", font.lab=2, lwd=1, cex.lab=1.3, cex.axis=1)
+abline(lm(oligodendrocyte_reference~PercentForEachCellType[,3]), lwd=4)
+points(oligodendrocyteImmature_reference~PercentForEachCellType[,3], col="grey")
+abline(lm(oligodendrocyteImmature_reference~PercentForEachCellType[,3]), col="grey", lwd=4)
+
+mtext(paste("R-Squared: ", signif(summary.lm(lm(oligodendrocyte_reference~PercentForEachCellType[,3]))$r.squared, digits=2), " (Mature), ", signif(summary.lm(lm(oligodendrocyteImmature_reference~PercentForEachCellType[,3]))$r.squared, digits=2), " (Immature)", sep=""), side=3, line=0,cex=0.75, font=2)
+
+#Microglia vs. Microglia
+plot(microglia_reference~PercentForEachCellType[,4], xlab="Actual % Microglia", ylab="Cell Type Reference Signal", main="Microglia",  font.lab=2, lwd=1, cex.lab=1.3, cex.axis=1)
+abline(lm(microglia_reference~PercentForEachCellType[,4]), lwd=4)
+mtext(paste("R-Squared: ", signif(summary.lm(lm(microglia_reference~PercentForEachCellType[,4]))$r.squared, digits=2), sep=""), side=3, line=0,cex=0.75, font=2)
+
+dev.off()
+
+
+#Note: This isn't directly comparable to ours, because our version averages by publication. To directly compare things:
+
+colnames(ZscoreInput_Expression_CellType_NoPrimaryOverlap)
+sum(ZscoreInput_Expression_CellType_NoPrimaryOverlap[,15]=="Neuron_All")
+#[1] 66
+
+Neuron_AllIndex_NoTagAvg<-apply(ZscoreInput_Expression_CellType_NoPrimaryOverlap[ZscoreInput_Expression_CellType_NoPrimaryOverlap[,15]=="Neuron_All",c(16:41)], 2, mean)
+
+Astrocyte_Index_NoTagAvg<-apply(ZscoreInput_Expression_CellType_NoPrimaryOverlap[ZscoreInput_Expression_CellType_NoPrimaryOverlap[,15]=="Astrocyte",c(16:41)], 2, mean)
+
+Oligodendrocyte_Index_NoTagAvg<-apply(ZscoreInput_Expression_CellType_NoPrimaryOverlap[ZscoreInput_Expression_CellType_NoPrimaryOverlap[,15]=="Oligodendrocyte",c(16:41)], 2, mean)
+
+OligodendrocyteImmature_Index_NoTagAvg<-apply(ZscoreInput_Expression_CellType_NoPrimaryOverlap[ZscoreInput_Expression_CellType_NoPrimaryOverlap[,15]=="Oligodendrocyte_Immature",c(16:41)], 2, mean)
+
+Microglia_Index_NoTagAvg<-apply(ZscoreInput_Expression_CellType_NoPrimaryOverlap[ZscoreInput_Expression_CellType_NoPrimaryOverlap[,15]=="Microglia",c(16:41)], 2, mean)
+
+
+pdf("Kuhn_CellMixture_vs_BrainInABlender_wDoyle_NoTagAvg.pdf", width=6, height=6, pointsize=10)
+par(mfrow=c(2,2))
+#Neuron vs. Neuron_All
+plot(Neuron_AllIndex_NoTagAvg~PercentForEachCellType[,1], xlab="Actual % Neurons", ylab="Cell Type Reference Signal", main="Neuron", font.lab=2, lwd=1, cex.lab=1.3, cex.axis=1)
+abline(lm(Neuron_AllIndex_NoTagAvg~PercentForEachCellType[,1]), lwd=4)
+mtext(paste("R-Squared: ", signif(summary.lm(lm(Neuron_AllIndex_NoTagAvg~PercentForEachCellType[,1]))$r.squared, digits=2), sep=""), side=3, line=0,cex=0.75, font=2)
+
+#Astrocyte vs. Astrocyte
+plot(Astrocyte_Index_NoTagAvg~PercentForEachCellType[,2], xlab="Actual % Astrocytes", ylab="Cell Type Reference Signal", main="Astrocyte", font.lab=2, lwd=1, cex.lab=1.3, cex.axis=1)
+abline(lm(Astrocyte_Index_NoTagAvg~PercentForEachCellType[,2]), lwd=4)
+mtext(paste("R-Squared: ", signif(summary.lm(lm(Astrocyte_Index_NoTagAvg~PercentForEachCellType[,2]))$r.squared, digits=2), sep=""), side=3, line=0,cex=0.75, font=2)
+
+
+#Oligodendrocyte vs. Oligodendrocyte
+plot(Oligodendrocyte_Index_NoTagAvg~PercentForEachCellType[,3], xlab="Actual % Oligodendrocytes", ylab="Cell Type Reference Signal", main="Oligodendrocyte", font.lab=2, lwd=1, cex.lab=1.3, cex.axis=1)
+abline(lm(Oligodendrocyte_Index_NoTagAvg~PercentForEachCellType[,3]), lwd=4)
+points(OligodendrocyteImmature_Index_NoTagAvg~PercentForEachCellType[,3], col="grey")
+abline(lm(OligodendrocyteImmature_Index_NoTagAvg~PercentForEachCellType[,3]), col="grey", lwd=4)
+
+mtext(paste("R-Squared: ", signif(summary.lm(lm(Oligodendrocyte_Index_NoTagAvg~PercentForEachCellType[,3]))$r.squared, digits=2), " (Mature), ", signif(summary.lm(lm(OligodendrocyteImmature_Index_NoTagAvg~PercentForEachCellType[,3]))$r.squared, digits=2), " (Immature)", sep=""), side=3, line=0,cex=0.75, font=2)
+
+#Microglia vs. Microglia
+plot(Microglia_Index_NoTagAvg~PercentForEachCellType[,4], xlab="Actual % Microglia", ylab="Cell Type Reference Signal", main="Microglia",  font.lab=2, lwd=1, cex.lab=1.3, cex.axis=1)
+abline(lm(Microglia_Index_NoTagAvg~PercentForEachCellType[,4]), lwd=4)
+mtext(paste("R-Squared: ", signif(summary.lm(lm(Microglia_Index_NoTagAvg~PercentForEachCellType[,4]))$r.squared, digits=2), sep=""), side=3, line=0,cex=0.75, font=2)
+
+dev.off()
+
